@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Function to add a new dish
-i=1
+n=0
 declare -a items
 declare -a prices
 add_dish() {
@@ -13,17 +13,18 @@ add_dish() {
   read price
   prices+=("$price")
 
-  # echo "$i. $name, $price" >> menu.txt
-  # ((i=i+1))
+  ((n=n+1))
   echo "Dish added successfully."
 }
 
 # Function to display the menu
 display_menu() {
   echo "Menu:"
-  echo "Dish Name, Price"
-  # cat menu.txt
-  echo "${ items[@]}"
+  echo "Dish Name........ Price"
+  for (( i=0 ; i<$n ; i++ )); 
+  do
+    echo "$(($i+1)). ${items[$i]}........ ${prices[$i]}"
+  done
 }
 
 # Function to search for a dish
@@ -31,19 +32,25 @@ search_dish() {
   echo "Enter the name of the dish: "
   read name
 
-  grep -i "$name" menu.txt
+  for (( i=0 ; i<$n ; i++ )); 
+  do
+    if [ ${items[$i]} == $name ]; then
+      echo "$(($i+1)). ${items[$i]}........ ${prices[$i]}"
+    else
+      echo "$name not found"
+    fi
+  done
 }
 
 # Function to place an order
 place_order() {
-  echo "Enter the dish name: "
+  echo "Enter the dish number: "
   read dish_number
 
   echo "Enter the quantity: "
   read quantity
 
-  price=$(grep -i "$dish_number." menu.txt | cut -d ',' -f 2)
-  total=$(expr $price \* $quantity)
+  total=$(expr $((prices[$dish_number-1])) \* $quantity)
 
   echo "Order Details:"
   echo "Dish: $dish_name"
