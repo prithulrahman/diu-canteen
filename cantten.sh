@@ -36,10 +36,10 @@ search_dish() {
   do
     if [ ${items[$i]} == $name ]; then
       echo "$(($i+1)). ${items[$i]}........ ${prices[$i]}"
-    else
-      echo "$name not found"
+      return
     fi
   done
+  echo "$name not found"
 }
 
 # Function to place an order
