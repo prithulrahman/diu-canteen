@@ -3,11 +3,27 @@
 # Function to execute a MySQL query and print the results
 execute_query() {
 
-    local query=$1
+  local query=$1
+  mysql -u "jarif" -p"1234qwer" "canteen" -e "$query"
 
-    # echo $query
-    mysql -u "jarif" -p"1234qwer" "canteen" -e "$query"
+}
+execute_silent() {
 
+  local query=$1
+  mysql -u "jarif" -p"1234qwer" "canteen" -se "$query"
+
+}
+
+create_db(){
+  execute_query "CREATE DATABASE canteen"
+}
+create_table(){
+  execute_query "CREATE TABLE canteen.items (
+    id INT NOT NULL AUTO_INCREMENT , 
+    name VARCHAR(128) NOT NULL , 
+    price DOUBLE NOT NULL , 
+    stock INT NOT NULL , 
+    PRIMARY KEY (id))"
 }
 
 # Function to insert data into a table
@@ -21,12 +37,17 @@ insert_data() {
 
     # local x=execute_query "SELECT id FROM items WHERE name='$nname'"
 
-    if execute_query "SELECT * FROM items WHERE name='$nname'"; then
-      update_stock 
-      echo "updated"
+    exist=$(execute_silent "SELECT id FROM items WHERE name='$nname'")
+    echo "$exist"
+    if [[ $exist ]]; then
+      # update_stock
+      local oldStock=$(execute_silent "SELECT stock FROM items WHERE name='$nname'")
+      local newStock=$(($oldStock + $sstock))
+      update_stock $exist $newStock
+      echo "$nname has been refilled by $sstock"
     else
       execute_query "INSERT INTO items (name, price, stock) VALUES ('"$nname"', $pprice, $sstock)"
-      # echo "invalid"
+      echo "$name added successfully."
     fi
 
 }
@@ -64,7 +85,6 @@ add_dish() {
   echo "Enter the name of the dish: "
   read name
 
-  
   echo "Enter the price of the dish: "
   read price
 
@@ -73,7 +93,6 @@ add_dish() {
 
   insert_data $name $price $stock
 
-  echo "$name added successfully."
 }
 
 # Function to place an order
@@ -84,13 +103,26 @@ place_order() {
   echo "Enter the quantity: "
   read quantity
 
-  total=$(expr $((prices[$dish_number-1])) \* $quantity)
+  local stock=$(execute_silent "SELECT stock FROM items WHERE id='$dish_number'")
 
-  echo "Order Details:"
-  echo "Dish: $dish_name"
-  echo "Quantity: $quantity"
-  echo "Total Price: $total"
-  echo "Order placed successfully."
+  if [[ $stock -lt $quantity ]]; then
+    local name=$(execute_silent "SELECT name FROM items WHERE id='$dish_number'")
+    echo "sorry, we only have $stock $name"
+    else
+      price=$(execute_silent "SELECT price FROM items WHERE id='$dish_number'")
+
+      # total=$(expr $((prices[$dish_number-1])) \* $quantity)
+      total=$(($price * $quantity))
+
+      echo "Order Details:"
+      echo "Dish: $dish_number"
+      echo "Quantity: $quantity"
+      echo "Total Price: $total"
+      echo "Order placed successfully."
+
+      local newStock=$(($stock - $quantity))
+      update_stock $dish_number $newStock
+    fi
 }
 
 # Main menu loop
@@ -121,6 +153,9 @@ while true; do
     5)
       echo "Exiting..."
       exit 0
+      ;;
+    6)
+      create_table
       ;;
     *)
       echo "Invalid choice. Please try again."
